@@ -84,90 +84,26 @@ class M_getDataAbsensi extends CI_model {
 		
 		foreach ($period as $dt) {
 			$datex = $dt->format("Y/m/d");
-			$datey = new DateTime($datex. "+1 days");
-			$datey = $datey->format("Y/m/d");
 			
 			$sql = "SELECT 
-					dt1.card_id AS cardID,
-					dt2.date_ku AS dateIN,
-					dt2.time_ku AS timeIN,
-					dt2.waktu AS waktuIN,
-					dt2.machine_id AS machine_idIN, 
-					CASE
-						WHEN dt2.waktu < dt3.waktu THEN dt3.date_ku 
-						WHEN dt2.waktu > dt3.waktu THEN dt4.date_ku
-						WHEN ISNULL(dt3.waktu) THEN dt4.date_ku
-						WHEN (ISNULL(dt2.waktu) AND !ISNULL(dt3.waktu)) AND dt3.time_ku > '09:00:00' THEN dt3.date_ku
-						ELSE ''
-					END AS dateOUT,
-					CASE
-						WHEN dt2.waktu < dt3.waktu THEN dt3.time_ku 
-						WHEN dt2.waktu > dt3.waktu THEN dt4.time_ku
-						WHEN ISNULL(dt3.waktu) THEN dt4.time_ku 
-						WHEN (ISNULL(dt2.waktu) AND !ISNULL(dt3.waktu)) AND dt3.time_ku > '09:00:00'  THEN dt3.time_ku
-						ELSE ''
-					END AS timeOUT,
-					CASE
-						WHEN dt2.waktu < dt3.waktu THEN dt3.waktu 
-						WHEN dt2.waktu > dt3.waktu THEN dt4.waktu
-						WHEN ISNULL(dt3.waktu) THEN dt4.waktu 
-						WHEN (ISNULL(dt2.waktu) AND !ISNULL(dt3.waktu)) AND dt3.time_ku > '09:00:00' THEN dt3.waktu
-						ELSE ''
-					END AS waktuOUT,
-					CASE
-						WHEN dt2.waktu < dt3.waktu THEN dt3.machine_id 
-						WHEN dt2.waktu > dt3.waktu THEN dt4.machine_id
-						WHEN ISNULL(dt3.waktu) THEN dt4.machine_id 
-						WHEN (ISNULL(dt2.waktu) AND !ISNULL(dt3.waktu)) AND dt3.time_ku > '09:00:00' THEN dt3.machine_id
-						ELSE ''
-					END AS machine_idOUT,
-					dt2.*, dt3.*, dt4.* 
-					FROM (
-						SELECT card_id FROM lks_logs_csv 
-						WHERE 
-						date_ku = '".$datex."' AND
-						fkey IN (0,1) 
-						GROUP BY card_id
-					)dt1
-					LEFT JOIN (
-						SELECT card_id, date_ku, MAX(time_ku) AS time_ku, waktu, machine_id FROM lks_logs_csv 
-						WHERE 
-						date_ku = '".$datex."' AND
-						fkey IN (0) 
-						GROUP BY card_id
-					)dt2 
-					ON dt1.card_id  = dt2.card_id 
-					LEFT JOIN (
-						SELECT card_id, date_ku, MIN(time_ku) AS time_ku, waktu, machine_id FROM lks_logs_csv 
-						WHERE 
-						date_ku = '".$datex."' AND
-						fkey IN (1) 
-						GROUP BY card_id
-					)dt3 
-					ON dt1.card_id  = dt3.card_id
-					LEFT JOIN (
-						SELECT card_id, date_ku, MIN(time_ku) AS time_ku, waktu, machine_id FROM lks_logs_csv 
-						WHERE 
-						date_ku = '".$datey."' AND
-						fkey IN (1) 
-						GROUP BY card_id
-					)dt4 
-					ON dt1.card_id  = dt4.card_id";
+					waktu, card_id, machine_id
+					FROM lks_logs_csv 
+					WHERE 
+					date_ku = '".$datex."' AND
+					fkey IN (0,1)";
 
 			$query = $db2->query($sql);	
 			
 			foreach ($query->result() as $data){
-
-				// $res["test"] .= $data->waktuIN;
-				$card_id = $data->cardID;
+				$waktu = $data->waktu;
+				$card_id = $data->card_id;
 				$card_id = sprintf("%06d",$card_id);
-				$waktuIN = $data->waktuIN;
-				$machine_idIN = $data->machine_idIN;
+				$machine_id = $data->machine_id;
 
 				$datax = array(
-								'Tgl' => $waktuIN,
+								'Tgl' => $waktu,
 								'Nip' => $card_id,
-								'Mesin' => $machine_idIN
+								'Mesin' => $machine_id
 							);
 
 				$res['datax'] = $datax;
@@ -175,25 +111,6 @@ class M_getDataAbsensi extends CI_model {
 				$db3->db_debug = false;
 			
 				if($db3->insert('absensiraw', $datax)){
-					$res['res'] = 'success';
-				}
-				else {
-					$res['err'] =  $db3->error();
-					// $res['err'] = $res['res']['message'];
-				}
-
-				$waktuOUT =  $data->waktuOUT;
-				$machine_idOUT =  $data->machine_idOUT;
-
-				$datay = array(
-								'Tgl' => $waktuOUT,
-								'Nip' => $card_id,
-								'Mesin' => $machine_idOUT
-							);
-
-				$db3->db_debug = false;
-
-				if($db3->insert('absensiraw', $datay)){
 					$res['res'] = 'success';
 				}
 				else {
